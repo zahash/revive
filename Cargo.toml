@@ -2,7 +2,10 @@
 name = "revive"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Zahash <zahash.z@gmail.com>"]
+description = "ui framework built on top of reactivate"
+license = "MIT"
+repository = "https://github.com/zahash/revive"
 
 [dependencies]
+reactivate = { version = "*" }
