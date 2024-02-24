@@ -8,4 +8,4 @@ license = "MIT"
 repository = "https://github.com/zahash/revive"
 
 [dependencies]
-reactivate = { version = "*" }
+reactivate = { version = "0.2.14" }
