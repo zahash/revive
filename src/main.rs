@@ -6,27 +6,27 @@ use wgpu::{
 };
 use winit::{
     dpi::PhysicalSize,
-    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event::{ElementState, Event, KeyEvent, WindowEvent},
+    event_loop::EventLoop,
+    keyboard::{Key, NamedKey},
     window::{Window, WindowBuilder},
 };
 
-pub struct State {
-    pub surface: Surface,
+pub struct State<'window> {
+    pub surface: Surface<'window>,
     pub device: Device,
     pub queue: Queue,
     pub config: SurfaceConfiguration,
-    pub window: Window,
 }
 
-impl State {
-    pub async fn new(window: Window) -> Self {
+impl<'window> State<'window> {
+    pub async fn new(window: &'window Window) -> Self {
         // Its main purpose is to create Adapters and Surfaces.
         let instance = Instance::default();
 
         // The surface is the part of the window that we draw to
         // SAFETY : window lives atleast as longs surface.
-        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+        let surface = instance.create_surface(window).unwrap();
 
         // The adapter is a handle for our actual graphics card
         let adapter = instance
@@ -41,8 +41,8 @@ impl State {
             .request_device(
                 &DeviceDescriptor {
                     label: None,
-                    features: Features::empty(),
-                    limits: Limits::default(),
+                    required_features: Features::empty(),
+                    required_limits: Limits::default(),
                 },
                 None,
             )
@@ -66,6 +66,7 @@ impl State {
             present_mode: PresentMode::Fifo,
             alpha_mode: CompositeAlphaMode::Auto,
             view_formats: vec![],
+            desired_maximum_frame_latency: 2,
         };
 
         surface.configure(&device, &config);
@@ -75,7 +76,6 @@ impl State {
             device,
             queue,
             config,
-            window,
         }
     }
 
@@ -135,39 +135,35 @@ impl State {
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let event_loop = EventLoop::new();
 
+    let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
-    let mut state = State::new(window).await;
+    let mut state = State::new(&window).await;
 
-    event_loop.run(move |event, _, control_flow| match event {
-        Event::WindowEvent { event, window_id } if window_id == state.window.id() => match event {
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::Escape),
-                        ..
-                    },
-                ..
-            } => *control_flow = ControlFlow::Exit,
-            WindowEvent::Resized(size) => state.resize(size),
-            WindowEvent::ScaleFactorChanged { new_inner_size, .. } => state.resize(*new_inner_size),
+    event_loop
+        .run(|event, elwt| match event {
+            Event::WindowEvent { event, window_id } if window_id == window.id() => match event {
+                WindowEvent::CloseRequested
+                | WindowEvent::KeyboardInput {
+                    event:
+                        KeyEvent {
+                            state: ElementState::Pressed,
+                            logical_key: Key::Named(NamedKey::Escape),
+                            ..
+                        },
+                    ..
+                } => elwt.exit(),
+                WindowEvent::Resized(size) => state.resize(size),
+                WindowEvent::RedrawRequested => match state.render() {
+                    Ok(_) => {}
+                    Err(SurfaceError::Lost) => state.resize(state.size()),
+                    Err(SurfaceError::OutOfMemory) => elwt.exit(),
+                    Err(e) => eprintln!("{:?}", e),
+                },
+                _ => {}
+            },
+
             _ => {}
-        },
-
-        Event::RedrawRequested(window_id) if window_id == state.window.id() => {
-            match state.render() {
-                Ok(_) => {}
-                Err(SurfaceError::Lost) => state.resize(state.size()),
-                Err(SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                Err(e) => eprintln!("{:?}", e),
-            }
-        }
-
-        Event::MainEventsCleared => state.window.request_redraw(),
-
-        _ => {}
-    });
+        })
+        .unwrap();
 }

@@ -10,10 +10,10 @@ repository = "https://github.com/zahash/revive"
 [dependencies]
 reactivate = "0.4"
 
-winit = "0.28"
-env_logger = "0.10"
+winit = "0.29"
+wgpu = "0.19"
+env_logger = "0.11"
 log = "0.4"
-wgpu = "0.18"
 
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
