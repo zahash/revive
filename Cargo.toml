@@ -8,4 +8,21 @@ license = "MIT"
 repository = "https://github.com/zahash/revive"
 
 [dependencies]
-reactivate = { version = "0.2.14" }
+reactivate = "0.4"
+
+winit = "0.28"
+env_logger = "0.10"
+log = "0.4"
+wgpu = "0.18"
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+# wasm-bindgen = "0.2"
+# web-sys = { version = "0.3", features = [
+#     'Window',
+#     'Document',
+#     'Element',
+#     'Event',
+#     'Text',
+#     'HtmlElement',
+# ] }
