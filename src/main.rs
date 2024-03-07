@@ -25,20 +25,30 @@ struct Vertex {
     color: [f32; 3],
 }
 
-const VERTICES: [Vertex; 3] = [
+const VERTICES: &[Vertex] = &[
     Vertex {
-        position: [0.0, 0.5, 0.0],
-        color: [1.0, 0.0, 0.0],
-    },
+        position: [-0.0868241, 0.49240386, 0.0],
+        color: [1.0, 0.0, 0.5],
+    }, // A
     Vertex {
-        position: [-0.5, -0.5, 0.0],
+        position: [-0.49513406, 0.06958647, 0.0],
         color: [0.0, 1.0, 0.0],
-    },
+    }, // B
     Vertex {
-        position: [0.5, -0.5, 0.0],
+        position: [-0.21918549, -0.44939706, 0.0],
         color: [0.0, 0.0, 1.0],
-    },
+    }, // C
+    Vertex {
+        position: [0.35966998, -0.3473291, 0.0],
+        color: [1.0, 0.0, 0.0],
+    }, // D
+    Vertex {
+        position: [0.44147372, 0.2347359, 0.0],
+        color: [0.0, 0.1, 0.0],
+    }, // E
 ];
+
+const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
 
 pub struct State<'window> {
     pub surface: Surface<'window>,
@@ -47,6 +57,7 @@ pub struct State<'window> {
     pub config: SurfaceConfiguration,
     pub render_pipeline: RenderPipeline,
     pub vertex_buffer: Buffer,
+    pub index_buffer: Buffer,
 }
 
 impl<'window> State<'window> {
@@ -105,12 +116,14 @@ impl<'window> State<'window> {
 
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: {
-                let size = std::mem::size_of::<Vertex>() * VERTICES.len();
-                let ptr = VERTICES.as_ptr() as *const u8;
-                unsafe { std::slice::from_raw_parts(ptr, size) }
-            },
+            contents: as_bytes(&VERTICES),
             usage: BufferUsages::VERTEX,
+        });
+
+        let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: as_bytes(&INDICES),
+            usage: BufferUsages::INDEX,
         });
 
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
@@ -180,6 +193,7 @@ impl<'window> State<'window> {
             config,
             render_pipeline,
             vertex_buffer,
+            index_buffer,
         }
     }
 
@@ -216,7 +230,8 @@ impl<'window> State<'window> {
 
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..VERTICES.len() as u32, 0..1);
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
 
         drop(render_pass);
 
@@ -240,6 +255,13 @@ impl<'window> State<'window> {
             height: self.config.height,
         }
     }
+}
+
+fn as_bytes<'a, T>(arr: &'a [T]) -> &'a [u8] {
+    let size = std::mem::size_of::<T>() * arr.len();
+    let ptr = arr.as_ptr() as *const u8;
+    // SAFETY: the lifetime of the u8 slice is tied to the lifetime of the input arr
+    unsafe { std::slice::from_raw_parts(ptr, size) }
 }
 
 #[tokio::main]
