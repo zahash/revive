@@ -19,13 +19,13 @@ use winit::{
 };
 
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, bytemuck::Pod, bytemuck::Zeroable, Copy)]
 struct Vertex {
     position: [f32; 3],
     color: [f32; 3],
 }
 
-const VERTICES: &[Vertex] = &[
+const VERTICES: [Vertex; 5] = [
     Vertex {
         position: [-0.0868241, 0.49240386, 0.0],
         color: [1.0, 0.0, 0.5],
@@ -48,7 +48,7 @@ const VERTICES: &[Vertex] = &[
     }, // E
 ];
 
-const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
+const INDICES: [u16; 9] = [0, 1, 4, 1, 2, 4, 2, 3, 4];
 
 pub struct State<'window> {
     pub surface: Surface<'window>,
@@ -116,13 +116,13 @@ impl<'window> State<'window> {
 
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: as_bytes(&VERTICES),
+            contents: bytemuck::cast_slice(&VERTICES),
             usage: BufferUsages::VERTEX,
         });
 
         let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: as_bytes(&INDICES),
+            contents: bytemuck::cast_slice(&INDICES),
             usage: BufferUsages::INDEX,
         });
 
@@ -255,13 +255,6 @@ impl<'window> State<'window> {
             height: self.config.height,
         }
     }
-}
-
-fn as_bytes<'a, T>(arr: &'a [T]) -> &'a [u8] {
-    let size = std::mem::size_of::<T>() * arr.len();
-    let ptr = arr.as_ptr() as *const u8;
-    // SAFETY: the lifetime of the u8 slice is tied to the lifetime of the input arr
-    unsafe { std::slice::from_raw_parts(ptr, size) }
 }
 
 #[tokio::main]
